@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>uni-registrar-driver-did-pdc</artifactId>
+    <packaging>${packaging.type}</packaging>
+    <version>1.0-SNAPSHOT</version>
+
+
+    <parent>
+        <groupId>decentralized-identity</groupId>
+        <artifactId>uni-registrar</artifactId>
+        <version>0.5-SNAPSHOT</version>
+    </parent>
+
+    <repositories>
+        <repository>
+            <id>danubetech-maven-snapshots</id>
+            <url>https://repo.danubetech.com/repository/maven-snapshots/</url>
+        </repository>
+        <repository>
+            <id>danubetech-maven-releases</id>
+            <url>https://repo.danubetech.com/repository/maven-releases/</url>
+        </repository>
+        <repository>
+            <id>sovrin</id>
+            <url>https://repo.sovrin.org/repository/maven-public</url>
+        </repository>
+        <repository>
+            <id>danubetech-maven-public</id>
+            <url>https://repo.danubetech.com/repository/maven-public/</url>
+        </repository>
+    </repositories>
+
+    <properties>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java.version>11</java.version>
+
+        <!-- Dependency Versions -->
+        <libindy-common-java.version>0.1.0</libindy-common-java.version>
+        <did-common-java.version>1.2.0</did-common-java.version>
+        <io.leonard-base58.version>0.0.2</io.leonard-base58.version>
+        <com.goterl-lazysodium-java.version>5.1.1</com.goterl-lazysodium-java.version>
+        <pid-sdk.version>1.0.0</pid-sdk.version>
+        <key-formats-java.version>1.1.0</key-formats-java.version>
+    </properties>
+
+    <profiles>
+
+        <profile>
+            <id>default</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <packaging.type>jar</packaging.type>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-maven-plugin</artifactId>
+                        <version>3.0.4</version>
+                        <configuration>
+                            <!--设置为true，以便把本地的system的jar也包括进来-->
+                            <includeSystemScope>true</includeSystemScope>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>war</id>
+            <properties>
+                <packaging.type>war</packaging.type>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-deploy-plugin</artifactId>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-war-plugin</artifactId>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <version>3.1</version>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.eclipse.jetty</groupId>
+                        <artifactId>jetty-maven-plugin</artifactId>
+                        <configuration>
+                            <jettyConfig>
+                                ${basedir}/src/test/resources/jetty.xml
+                            </jettyConfig>
+                            <useTestClasspath>true</useTestClasspath>
+                            <systemProperties>
+                                <systemProperty>
+                                    <name>jetty.port</name>
+                                    <value>9080</value>
+                                </systemProperty>
+                                <systemProperty>
+                                    <name>slf4j</name>
+                                    <value>true</value>
+                                </systemProperty>
+                                <systemProperty>
+                                    <name>log4j2.configurationFile</name>
+                                    <value>file:${basedir}/src/test/resources/log4j2-test.properties</value>
+                                </systemProperty>
+                            </systemProperties>
+                            <webApp>
+                                <contextPath>/</contextPath>
+                                <jettyEnvXml>
+                                    ${basedir}/src/test/resources/jetty-env.xml
+                                </jettyEnvXml>
+                                <webInfIncludeJarPattern>^$</webInfIncludeJarPattern>
+                                <containerIncludeJarPattern>^$</containerIncludeJarPattern>
+                                <throwUnavailableOnStartupException>true</throwUnavailableOnStartupException>
+                            </webApp>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.danubetech</groupId>
+                <artifactId>libindy-common-java</artifactId>
+                <version>${libindy-common-java.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.vnet</groupId>
+                <artifactId>pdc-did-sdk</artifactId>
+                <version>${pid-sdk.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.danubetech</groupId>
+                <artifactId>key-formats-java</artifactId>
+                <version>${key-formats-java.version}</version>
+            </dependency>
+        </dependencies>
+
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j-impl</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>decentralized-identity</groupId>
+            <artifactId>uni-registrar-driver</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.danubetech</groupId>
+            <artifactId>key-formats-java</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.danubetech</groupId>
+            <artifactId>libindy-common-java</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.vnet</groupId>
+            <artifactId>pdc-did-sdk</artifactId>
+            <scope>system</scope>
+            <systemPath>${pom.basedir}/src/main/resources/lib/pdc-did-sdk-1.0.0.jar</systemPath>
+        </dependency>
+    </dependencies>
+
+
+</project>
