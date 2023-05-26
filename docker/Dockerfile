@@ -10,7 +10,7 @@ RUN cd /opt/driver-did-pdc && mvn clean install package -N -DskipTests
 
 # done
 
-EXPOSE 8080
+EXPOSE 9080
 
 RUN chmod a+rx /opt/driver-did-pdc/docker/run-driver-did-pdc.sh
 CMD "/opt/driver-did-pdc/docker/run-driver-did-pdc.sh"

@@ -6,11 +6,11 @@ import com.vnet.did.protocol.request.CreateDidArgs;
 import com.vnet.did.protocol.response.ResponseData;
 import com.vnet.did.service.DidService;
 import com.vnet.did.service.impl.DidServiceImpl;
+import com.vnet.did.util.AccountUtils;
 import com.vnet.did.util.CredentialsUtils;
 import foundation.identity.did.VerificationMethod;
 import foundation.identity.jsonld.JsonLDUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.web3j.crypto.Credentials;
@@ -24,11 +24,14 @@ import uniregistrar.state.DeactivateState;
 import uniregistrar.state.SetStateFinished;
 import uniregistrar.state.UpdateState;
 
+import java.math.BigInteger;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.bitcoinj.core.ECKey;
 
 /**
  * @Description
@@ -47,21 +50,28 @@ public class DidPdcDriver extends AbstractDriver {
         return createState;
     }
 
-    private CreateDidArgs buildCreateDidArgs() {
+    private CreateDidArgs buildCreateDidArgs() throws RegistrationException {
         CreateDidArgs createDidArgs = new CreateDidArgs();
         Credentials credentials = CredentialsUtils.create();
         createDidArgs.setPublicKey(credentials.getEcKeyPair().getPublicKey().toString());
         createDidArgs.setPrivateKey(credentials.getEcKeyPair().getPrivateKey().toString());
+        try {
+            AccountUtils.gasTap(credentials.getAddress());
+        } catch (Exception e) {
+            throw new RegistrationException(e.getMessage());
+        }
         return createDidArgs;
     }
+
+
 
     private String createDid(CreateDidArgs createDidArgs) throws RegistrationException {
         DidService didService = new DidServiceImpl();
         ResponseData<String> createDidResult = didService.createDid(createDidArgs);
         Integer errorCode = createDidResult.getErrorCode();
         if (!StringUtils.equals("0", errorCode.toString())) {
-            log.error("get did document failed caused by {}", createDidResult.getErrorMessage());
-            throw new RegistrationException("get did document failed");
+            log.error("create did failed caused by {}", createDidResult.getErrorMessage());
+            throw new RegistrationException("create did failed");
         }
         String did = createDidResult.getResult();
         return did;
@@ -94,8 +104,7 @@ public class DidPdcDriver extends AbstractDriver {
                 .type("Secp256k1")
                 .build();
         String keyUrl = identifierToKeyUrl(did);
-        byte[] privateKeyBytes = createDidArgs.getPrivateKey().getBytes();
-        JWK jsonWebKey = privateKeyToJWK(privateKeyBytes, keyUrl);
+        JWK jsonWebKey = privateKeyToJWK(new BigInteger(createDidArgs.getPrivateKey()), keyUrl);
         JsonLDUtils.jsonLdAdd(verificationMethod, "privateKeyJwk", jsonWebKey.toMap());
         JsonLDUtils.jsonLdAdd(verificationMethod, "purpose", List.of( "authentication", "assertionMethod", "capabilityInvocation", "capabilityDelegation"));
         return verificationMethod;
@@ -105,10 +114,11 @@ public class DidPdcDriver extends AbstractDriver {
         return identifier + "#key-1";
     }
 
-    private static JWK privateKeyToJWK(byte[] privateKeyBytes, String keyUrl) {
+    private static JWK privateKeyToJWK(BigInteger privateKey, String keyUrl) {
         String kid = keyUrl;
         String use = null;
-        return PrivateKey_to_JWK.secp256k1PrivateKeyBytes_to_JWK(privateKeyBytes, kid, use);
+        ECKey ecKey = ECKey.fromPrivate(privateKey);
+        return PrivateKey_to_JWK.secp256k1PrivateKey_to_JWK(ecKey, kid, use);
     }
 
     @Override
@@ -120,4 +130,5 @@ public class DidPdcDriver extends AbstractDriver {
     public DeactivateState deactivate(DeactivateRequest deactivateRequest) throws RegistrationException {
         throw new RegistrationException("Not implemented.");
     }
+
 }
